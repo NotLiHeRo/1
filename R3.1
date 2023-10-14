@@ -1,0 +1,91 @@
+# 这是一个settings中编译器的代码模板
+# 开发时间：2023/10/12 10:11
+import cv2
+import numpy as np
+from PIL import Image
+
+def cv_show(name,img):
+    cv2.imshow(name,img)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+img=cv2.imread("D://A2//overlap_tile.jpg",0)
+hight,width=img.shape
+hight_mark=hight
+width_mark=width
+h=256 # 窗口高度为256
+w=256 # 窗口宽度为256
+s_h=128# y方向移动步数
+s_w=128# x方向移动步数
+array_list=[]
+def step(img):# 如果出现正好为1次移动，
+    step_number_w=0
+    step_number_h=0
+    hight, width = img.shape
+    number_w=width-w # 横向用于取余运算得到循环个数   # 如果出现正好为1次移动，那么number_w就是0，为特殊情况，那么下面的i,j就无法循环
+    number_h=hight-h # 纵向计算位移次数
+    while number_w//s_w:
+         number_w=number_w-s_w
+         step_number_w=step_number_w+1
+    while number_h//s_h:
+         number_h=number_h-s_h
+         step_number_h=step_number_h+1
+    return step_number_w , step_number_h
+def overlap_tile(img, h, w, s_h, s_w)->list:
+    hight, width = img.shape
+    step_number_w,step_number_h=step(img)
+    print(step_number_w*s_w+w,width,step_number_h*s_h+h,hight)
+    if((step_number_w*s_w+w<=width)&(step_number_h*s_h+h<=hight)):
+     for i in range(step_number_h):# i为高度  # step_number_h=0的时候不适用
+         for j in range(step_number_w):# j为宽度# step_number_w=0的时候不适用
+             img_cut_body1=img[i*s_h:i*s_h+h,j*s_w:j*s_w+w]
+             # img[向下移动次数*向下移动步数:向下移动次数*向下运行步数+窗口高度,向右移动次数*向右移动步数:向右移动次数*向右运行步数+窗口宽度],但移动6次所以后面处理第六次
+             array_list.append(np.array(img_cut_body1))
+             cv_show('body', img_cut_body1)
+         img_cut_body2 = img[i * s_h:i * s_h + h, step_number_w * s_w:step_number_w* s_w + w]
+         array_list.append(np.array(img_cut_body2))
+         cv_show('body',img_cut_body2)
+         if(step_number_w*s_w+w<width):#如果有右方向剩余
+             img_cut_w=img[i*s_h:i*s_h+h,step_number_w*s_w+w:width]# 每次向右运行之后右边的剩余部分img_cut_w=img[总向下移动次数*向下移动步数:总向下移动次数*向下移动步数+窗口高度,最后一次向右移动的窗口右边位置:width]
+             array_list.append(np.array(img_cut_w))
+             cv_show('sheng_yu',img_cut_w)
+     # 下方向第step_number_h次右面遍历
+     for i in range (step_number_w):
+         img_cut_body3 = img[step_number_h * s_h:step_number_h * s_h + h, i* s_w:i * s_w + w]
+         array_list.append(np.array(img_cut_body3))
+     img_cut_body4=img[step_number_h * s_h:step_number_h * s_h + h, step_number_w* s_w:step_number_w * s_w + w]
+     array_list.append(np.array(img_cut_body4))#处理下方向第step_number_h次的第step_number_w次切分
+     if (step_number_w * s_w + w < width):  # 如果有右方向剩余
+         img_cut_last = img[step_number_h * s_h:step_number_h * s_h + h, step_number_w* s_w+ w:width]  # 每次向右运行之后右边的剩余部分img_cut_w=img[总向下移动次数*向下移动步数:总向下移动次数*向下移动步数+窗口高度,最后一次向右移动的窗口右边位置:width]
+         array_list.append(np.array(img_cut_last))
+         cv_show('sheng_yu', img_cut_last)
+
+     if(step_number_h*s_h+h<hight):#如果有下方向剩余
+         for j in range(step_number_w):  # j为宽度，最后下面一层的处理，切割高度固定，只需要宽度变化
+             img_cut_h1=img[step_number_h*s_h+h:hight,j*s_w:j*s_w+w]# img[向下移动次数*向下移动步数:底部,慢慢向右移动]
+             array_list.append(np.array(img_cut_h1))
+             cv_show('ddd', img_cut_h1)
+          #第step_number_w次
+         img_cut_h2 = img[step_number_h * s_h + h:hight, step_number_w* s_w:step_number_w * s_w + w]
+         array_list.append(np.array(img_cut_h2))
+         cv_show('ddd', img_cut_h2)
+         # img_cut_h2=img[step_number_h*s_h+h:hight,j*s_w:j*s_w+w]
+         if (step_number_w * s_w + w < width):
+             img_cut_sheng_yu = img[step_number_h* s_h + h:hight, step_number_w*s_w+w:width]# 最后的右下角处理
+             array_list.append(np.array(img_cut_sheng_yu))
+             cv_show('you_xia_jiao',img_cut_sheng_yu)
+    return array_list
+
+list=overlap_tile(img,h,w,s_h,s_w)
+print(type(list))
+print(list)
+for i in range(len(list)):
+    cv2.imwrite("D:\\R3" + "\\" + str(i+1) + ".jpg",list[i])
+
+
+
+
+
+
+
+
+
